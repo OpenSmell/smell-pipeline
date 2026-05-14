@@ -1,0 +1,5 @@
+__pycache__
+.vscode
+*.pyc
+models/foodb_json.zip
+models/leffingwell/*.joblib

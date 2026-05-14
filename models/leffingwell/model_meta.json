@@ -1,0 +1,6 @@
+{
+  "n_molecules": 3515,
+  "n_odor_categories": 77,
+  "test_f1_macro": 0.3010094293464804,
+  "test_f1_micro": 0.4035964035964036
+}
