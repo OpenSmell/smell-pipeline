@@ -11,46 +11,17 @@ warnings.filterwarnings("ignore")
 
 ROOT = Path(__file__).resolve().parent.parent
 
-# ── RDKit chemoprint ─────────────────────────────────────────────────────────
+# ── RDKit chemoprint (from canonical chemoprint package) ──────────────────
 _CHEMOPRINT_CACHE = {}
 
 def chemoprint_from_smiles(smiles):
     if smiles in _CHEMOPRINT_CACHE:
         return _CHEMOPRINT_CACHE[smiles]
     try:
-        from rdkit import Chem
-        from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, GraphDescriptors
+        from chemoprint import chemoprint_from_smiles as _canonical_cp
     except ImportError:
         return None
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        _CHEMOPRINT_CACHE[smiles] = None
-        return None
-    props = [
-        Descriptors.MolWt(mol), Descriptors.MolLogP(mol),
-        Lipinski.NumHDonors(mol), Lipinski.NumHAcceptors(mol),
-        Descriptors.NumRotatableBonds(mol),
-        rdMolDescriptors.CalcNumRings(mol),
-        rdMolDescriptors.CalcNumAromaticRings(mol),
-        rdMolDescriptors.CalcNumAliphaticRings(mol),
-        Descriptors.FractionCSP3(mol), Descriptors.TPSA(mol),
-        Descriptors.NumValenceElectrons(mol), Descriptors.HeavyAtomCount(mol),
-        GraphDescriptors.Chi0(mol), GraphDescriptors.Chi1(mol),
-        GraphDescriptors.Kappa1(mol),
-    ]
-    fg_smarts = {
-        "alcohol": "[OX2H]", "aldehyde": "[CX3H1](=O)[#6]",
-        "ketone": "[#6][CX3](=O)[#6]", "carboxylic_acid": "[CX3](=O)[OX2H1]",
-        "amine": "[NX3;H2,H1;!$(NC=O)]", "ester": "[#6][CX3](=O)[OX2H0][#6]",
-        "ether": "[OD2]([#6])[#6]", "nitrile": "[NX1]#[CX2]",
-        "amide": "[NX3][CX3](=[OX1])", "nitro": "[$([NX3](=O)=O),$([NX3+](=O)[O-])]",
-        "thiol": "[SX2H]", "sulfide": "[SX2]([#6])[#6]",
-        "aromatic": "a", "alkene": "[CX3]=[CX3]",
-    }
-    for smarts in fg_smarts.values():
-        patt = Chem.MolFromSmarts(smarts)
-        props.append(1.0 if patt and mol.HasSubstructMatch(patt) else 0.0)
-    result = np.array(props, dtype=np.float32)
+    result = _canonical_cp(smiles)
     _CHEMOPRINT_CACHE[smiles] = result
     return result
 

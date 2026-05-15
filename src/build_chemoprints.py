@@ -2,18 +2,17 @@
 """
 Build chemoprints for SmellNet substances using local FooDB JSON zip.
 Streams Content.json from inside the zip (no disk extraction of the 3.5 GB file).
+Uses the canonical `chemoprint` package (v1.0) for chemoprint generation.
 """
-import json, os, sys, zipfile
+import json, zipfile
 import numpy as np
-from rdkit import Chem, RDLogger
-from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, GraphDescriptors
+from pathlib import Path
+from chemoprint import chemoprint_from_smiles
 
-RDLogger.logger().setLevel(RDLogger.ERROR)
-
-FOODB_ZIP = "foodb_json.zip"
+ROOT = Path(__file__).resolve().parent.parent
+FOODB_ZIP = ROOT / "models" / "foodb_json.zip"
 FOODB_DIR = "foodb_2020_04_07_json"
-COMPOUND_CP_CACHE = "compound_chemoprints.npy"
-OUTPUT_CSV = "foodb_chemoprints.csv"
+OUTPUT_DIR = ROOT / "data"
 
 FOOD_ID_MAP = {
     "allspice": 288, "almond": 148, "angelica": 1, "apple": 105,
@@ -29,42 +28,7 @@ FOOD_ID_MAP = {
     "strawberry": 83, "sweet_potato": 92, "tomato": 171, "turnip": 36,
 }
 
-# ── Chemoprint function ──────────────────────────────────────────────────────
-_CP_CACHE = {}
-def chemoprint(smiles):
-    if smiles in _CP_CACHE:
-        return _CP_CACHE[smiles]
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        _CP_CACHE[smiles] = None
-        return None
-    props = [
-        Descriptors.MolWt(mol), Descriptors.MolLogP(mol),
-        Lipinski.NumHDonors(mol), Lipinski.NumHAcceptors(mol),
-        Descriptors.NumRotatableBonds(mol),
-        rdMolDescriptors.CalcNumRings(mol),
-        rdMolDescriptors.CalcNumAromaticRings(mol),
-        rdMolDescriptors.CalcNumAliphaticRings(mol),
-        Descriptors.FractionCSP3(mol), Descriptors.TPSA(mol),
-        Descriptors.NumValenceElectrons(mol), Descriptors.HeavyAtomCount(mol),
-        GraphDescriptors.Chi0(mol), GraphDescriptors.Chi1(mol),
-        GraphDescriptors.Kappa1(mol),
-    ]
-    fg_smarts = {
-        "alcohol": "[OX2H]", "aldehyde": "[CX3H1](=O)[#6]",
-        "ketone": "[#6][CX3](=O)[#6]", "carboxylic_acid": "[CX3](=O)[OX2H1]",
-        "amine": "[NX3;H2,H1;!$(NC=O)]", "ester": "[#6][CX3](=O)[OX2H0][#6]",
-        "ether": "[OD2]([#6])[#6]", "nitrile": "[NX1]#[CX2]",
-        "amide": "[NX3][CX3](=[OX1])", "nitro": "[$([NX3](=O)=O),$([NX3+](=O)[O-])]",
-        "thiol": "[SX2H]", "sulfide": "[SX2]([#6])[#6]",
-        "aromatic": "a", "alkene": "[CX3]=[CX3]",
-    }
-    for smarts in fg_smarts.values():
-        patt = Chem.MolFromSmarts(smarts)
-        props.append(1.0 if patt and mol.HasSubstructMatch(patt) else 0.0)
-    result = np.array(props, dtype=np.float32)
-    _CP_CACHE[smiles] = result
-    return result
+# ── Chemoprint function (from canonical chemoprint package) ──────────────────
 
 # ── 1. Load food names ───────────────────────────────────────────────────────
 print("📖 Loading food names …")
@@ -132,7 +96,7 @@ for s, (fid, fname) in name_matches.items():
     for cid in cids:
         smi = compound_smiles.get(cid)
         if smi:
-            cp = chemoprint(smi)
+            cp = chemoprint_from_smiles(smi)
             if cp is not None:
                 vecs.append(cp)
     if vecs:
@@ -151,13 +115,14 @@ if missing:
 if chemoprints:
     keys = sorted(chemoprints.keys())
     arr = np.array([chemoprints[k] for k in keys])
-    np.save("foodb_chemoprints.npy", arr)
-    with open("foodb_substances.txt", "w") as f:
-        f.writelines(f"{k}\n" for k in keys)
     import pandas as pd
     df = pd.DataFrame(arr, index=keys, columns=[f"cp_{i}" for i in range(arr.shape[1])])
     df.index.name = "substance"
-    df.to_csv(OUTPUT_CSV)
-    print(f"✅ Saved to {OUTPUT_CSV}")
+    csv_path = OUTPUT_DIR / "foodb_chemoprints.csv"
+    df.to_csv(csv_path)
+    np.save(OUTPUT_DIR / "foodb_chemoprints.npy", arr)
+    with open(OUTPUT_DIR / "foodb_substances.txt", "w") as f:
+        f.writelines(f"{k}\n" for k in keys)
+    print(f"✅ Saved to {csv_path}")
 else:
     print("❌ No chemoprints")

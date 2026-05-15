@@ -17,11 +17,15 @@ from pathlib import Path
 
 # ---- RDKit (may need conda/pip install rdkit-pypi) ----
 try:
-    from rdkit import Chem
-    from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, GraphDescriptors
+    from chemoprint import chemoprint_from_smiles
 except ImportError:
-    print("❌ RDKit not installed.  pip install rdkit-pypi")
-    exit(1)
+    try:
+        from rdkit import Chem
+        from rdkit.Chem import Descriptors, rdMolDescriptors, Lipinski, GraphDescriptors
+    except ImportError:
+        print("❌ RDKit not installed.  pip install rdkit-pypi")
+        exit(1)
+    print("⚠️  canonical chemoprint package not installed; falling back to RDKit directly. pip install chemoprint")
 
 # ---- HuggingFace datasets ----
 try:
@@ -31,59 +35,8 @@ except ImportError:
     exit(1)
 
 # ======================================================================
-# Chemoprint function (same as opensmell/chemoprint library)
+# Chemoprint function (from canonical chemoprint package, imported above)
 # ======================================================================
-def chemoprint_from_smiles(smiles: str):
-    """Return 29‑dim vector from SMILES string."""
-    mol = Chem.MolFromSmiles(smiles)
-    if mol is None:
-        return None
-    props = []
-    # 0-11: base properties
-    props.append(Descriptors.MolWt(mol))
-    props.append(Descriptors.MolLogP(mol))
-    props.append(Lipinski.NumHDonors(mol))
-    props.append(Lipinski.NumHAcceptors(mol))
-    props.append(Descriptors.NumRotatableBonds(mol))
-    props.append(rdMolDescriptors.CalcNumRings(mol))
-    props.append(rdMolDescriptors.CalcNumAromaticRings(mol))
-    props.append(rdMolDescriptors.CalcNumAliphaticRings(mol))
-    props.append(Descriptors.FractionCsp3(mol))
-    props.append(Descriptors.TPSA(mol))
-    props.append(Descriptors.NumValenceElectrons(mol))
-    props.append(Descriptors.HeavyAtomCount(mol))
-
-    # 12-14: topological indices
-    from rdkit.Chem import GraphDescriptors as gd
-    props.append(gd.WienerIndex(mol))
-    props.append(gd.ZagrebIndex(mol))
-    props.append(gd.Eccentricity(mol))
-
-    # 15-28: functional group indicators (binary)
-    fg_smarts = {
-        "alcohol": "[OX2H]",
-        "aldehyde": "[CX3H1](=O)[#6]",
-        "ketone": "[#6][CX3](=O)[#6]",
-        "carboxylic_acid": "[CX3](=O)[OX2H1]",
-        "amine": "[NX3;H2,H1;!$(NC=O)]",
-        "ester": "[#6][CX3](=O)[OX2H0][#6]",
-        "ether": "[OD2]([#6])[#6]",
-        "nitrile": "[NX1]#[CX2]",
-        "amide": "[NX3][CX3](=[OX1])",
-        "nitro": "[$([NX3](=O)=O),$([NX3+](=O)[O-])]",
-        "thiol": "[SX2H]",
-        "sulfide": "[SX2]([#6])[#6]",
-        "aromatic": "a",
-        "alkene": "[CX3]=[CX3]",
-    }
-    for smarts in fg_smarts.values():
-        patt = Chem.MolFromSmarts(smarts)
-        if patt is not None and mol.HasSubstructMatch(patt):
-            props.append(1.0)
-        else:
-            props.append(0.0)
-
-    return np.array(props, dtype=np.float32)
 
 
 # ======================================================================
