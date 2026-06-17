@@ -17,13 +17,13 @@ Data pipeline utilities for the OpenSmell project.
 
 ## The core product: `data/foodb_chemoprints.csv`
 
-This is the primary output — 44 food substances with 29-dimensional chemoprint vectors computed from FooDB GC-MS volatile compound data. It's the ground truth for training the universal encoder's chemoprint head.
+This is the primary output — 44 food substances with 29-dimensional chemoprint vectors computed from FooDB GC-MS volatile compound data. It's the ground truth for training the encoder's chemoprint head.
 
 ## Pipeline (historical)
 
 The original pipeline attempted to train a post-hoc decoder from a classification CNN's latent space to chemoprints. R² was near zero — the CNN's latent space (trained for classification) does not encode chemical properties linearly. This approach is archived at `archive/v0_posthoc_decoder/`.
 
-The correct approach (in development at `opensmell/universal-encoder`) trains the latent space with MAE + contrastive + domain-adversarial loss from the start, with the chemoprint head trained on the frozen encoder.
+The correct approach (in development at `opensmell/encoder`) trains the latent space with MAE + contrastive + domain-adversarial loss from the start, with the chemoprint head trained on the frozen encoder.
 
 ## Requirements
 

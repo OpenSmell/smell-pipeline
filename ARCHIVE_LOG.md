@@ -13,4 +13,4 @@
 - `demo/app.py` — lookup-table demo that depended on the broken decoder
 
 ### Why
-The post-hoc linear decoder from classification CNN latent space → chemoprint failed (R² near zero). The CNN latent space (trained for 50-class discrimination) does not linearly encode chemical properties. Replaced by the universal encoder approach (MAE + contrastive) in `opensmell/universal-encoder`.
+The post-hoc linear decoder from classification CNN latent space → chemoprint failed (R² near zero). The CNN latent space (trained for 50-class discrimination) does not linearly encode chemical properties. Replaced by the encoder approach (MAE + contrastive) in `opensmell/encoder`.

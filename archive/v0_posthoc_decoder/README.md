@@ -1,7 +1,7 @@
 # v0 Post-hoc Decoder — Failed Approach (Archived)
 
 > **Status:** Archived. R² near zero.
-> **Replaced by:** MAE + contrastive universal encoder (see `opensmell/universal-encoder`)
+> **Replaced by:** MAE + contrastive encoder (see `opensmell/encoder`)
 
 ## What was attempted
 
@@ -29,7 +29,7 @@ Train a **post-hoc linear decoder** to map from a classification CNN's 128-dim l
 
 ## What replaces it
 
-The universal encoder (`opensmell/universal-encoder`) trains a 256-dim latent space with:
+The encoder (`opensmell/encoder`) trains a 256-dim latent space with:
 
 - **Masked autoencoder (MAE)** pretraining — learns to reconstruct sensor waveforms from partial observations. This captures chemical information without labels.
 - **Contrastive fine-tuning** — pulls same-substance latents together, pushes different-substance latents apart.
